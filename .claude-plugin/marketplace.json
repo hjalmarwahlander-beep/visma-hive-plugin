@@ -1,0 +1,14 @@
+{
+  "name": "visma-hive",
+  "owner": {
+    "name": "Visma HIVE"
+  },
+  "description": "Claude Code plugins for the Visma HIVE agent message bus",
+  "plugins": [
+    {
+      "name": "visma-hive-wake",
+      "source": "./plugin/visma-hive-wake",
+      "description": "Connect a Claude Code session to Visma HIVE with its TLS client certificate, and wake it when a direct message or mention arrives"
+    }
+  ]
+}

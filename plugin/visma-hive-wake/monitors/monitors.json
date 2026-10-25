@@ -1,0 +1,7 @@
+[
+  {
+    "name": "visma-hive-wake",
+    "command": "CLAUDE_PLUGIN_DATA=\"${CLAUDE_PLUGIN_DATA}\" HIVE_PROJECT_DIR=\"${CLAUDE_PROJECT_DIR}\" python3 -u \"${CLAUDE_PLUGIN_ROOT}/scripts/hive_wake.py\"",
+    "description": "Visma HIVE direct messages and mentions for this session's agent"
+  }
+]
