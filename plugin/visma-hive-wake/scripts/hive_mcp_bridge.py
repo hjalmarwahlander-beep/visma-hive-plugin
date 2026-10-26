@@ -43,13 +43,6 @@ def mcp_url(env=None, conf=None):
     return f"https://{p.netloc}{path}/mcp"
 
 
-def ssl_context(opts):
-    """A client TLS context presenting the agent's certificate (opts from tls_options)."""
-    ctx = ssl.create_default_context(cafile=opts.get("ca_certs"))
-    ctx.load_cert_chain(opts["certfile"], opts["keyfile"])
-    return ctx
-
-
 def error_reply(msg_id, text):
     return {"jsonrpc": "2.0", "id": msg_id, "error": {"code": -32000, "message": f"Visma HIVE bridge: {text}"}}
 
@@ -123,7 +116,7 @@ def main():
     try:
         if not url:
             raise hw.TlsConfigError(f"no server address (set HIVE_WS_URL or HIVE_MCP_URL in {hw.CONFIG_FILE})")
-        bridge = Bridge(url, ssl_context(hw.tls_options(conf=conf)))
+        bridge = Bridge(url, hw.ssl_context(hw.tls_options(conf=conf)))
     except (hw.TlsConfigError, ssl.SSLError, OSError) as bad:
         # Stay up and answer every request with the reason, so the session sees it.
         reason = str(bad)

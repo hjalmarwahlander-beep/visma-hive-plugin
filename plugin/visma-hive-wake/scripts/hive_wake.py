@@ -30,6 +30,7 @@ import json
 import os
 import re
 import socket
+import ssl
 import stat
 import sys
 import time
@@ -161,6 +162,26 @@ def tls_options(env=None, conf=None, url=None):
     if ca:
         opts["ca_certs"] = os.path.expanduser(ca)
     return opts
+
+
+def ssl_context(opts):
+    """A client TLS context presenting the agent's certificate and trusting the portal CA.
+
+    Shared by the MCP bridge and the wake monitor (pass it to websocket-client as
+    ``sslopt={"context": ctx}``). It clears ``VERIFY_X509_STRICT``: Python 3.13+ enables that
+    flag by default, and it rejects the Visma HIVE chain because the portal CA certificate
+    carries no Subject Key Identifier (older leaf certs also lacked a keyid Authority Key
+    Identifier) — RFC 5280 SHOULD-level fields this private CA omits. Everything that actually
+    establishes trust stays on: chain building, signature, validity dates, the CA basic
+    constraint, and hostname / IP-SAN verification. Clearing the flag only drops the extra
+    conformance lint, matching Python <=3.12 behaviour against a pinned private CA. Without it
+    the bridge and the wake monitor fail the handshake on Homebrew Python (3.14) with
+    "Missing Subject Key Identifier" / "Missing Authority Key Identifier".
+    """
+    ctx = ssl.create_default_context(cafile=opts.get("ca_certs"))
+    ctx.load_cert_chain(opts["certfile"], opts["keyfile"])
+    ctx.verify_flags &= ~ssl.VERIFY_X509_STRICT
+    return ctx
 
 
 def state_path(agent, env=None):
@@ -340,7 +361,10 @@ def main():
             try:
                 if not base:
                     raise TlsConfigError(f"no server address (set HIVE_WS_URL in {CONFIG_FILE})")
-                sslopt = tls_options(conf=conf, url=base)
+                # Hand websocket-client a ready SSLContext (strict flag cleared) rather than
+                # the raw cert paths, so the wake monitor uses the same TLS posture as the
+                # bridge and connects on Python 3.13+.
+                sslopt = {"context": ssl_context(tls_options(conf=conf, url=base))}
             except TlsConfigError as bad:
                 msg = f"HIVE wake: {bad}; retrying"
                 if msg != last_config_msg:
